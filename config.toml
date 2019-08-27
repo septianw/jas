@@ -1,0 +1,14 @@
+[server]
+bind = "192.168.122.1"
+port = 4519
+# if this empty, will use default location ./modules
+moduleLocation = ""
+# if this empty, will use default location ./lib
+libraryLocation = ""
+
+[database]
+hostname = "localhost"
+port = 3306
+username = "asep"
+password = "dummypass"
+database = "mysql"
