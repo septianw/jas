@@ -1,7 +1,6 @@
 package common
 
 import (
-	"database/sql"
 	"encoding/gob"
 	"log"
 	"os"
@@ -9,33 +8,9 @@ import (
 
 	// "github.com/juju/loggo"
 	"runtime/debug"
+
+	ty "github.com/septianw/jas/types"
 )
-
-type Dbconf struct {
-	Type     string
-	Host     string
-	Port     uint16
-	User     string
-	Pass     string
-	Database string
-}
-
-type OpenDbFunc func(d Dbconf) (*sql.DB, error)
-
-type Runtime struct {
-	AppName        string
-	Version        string
-	BuildId        string
-	Stage          string
-	ConfigLocation string
-	Dbconf         Dbconf
-	Modloc         string
-	Libloc         string
-}
-
-type Status struct {
-	Installed uint8
-}
 
 type Exception interface{}
 
@@ -60,8 +35,8 @@ func (tc TryCatchBlock) Do() {
 	tc.Try()
 }
 
-func ReadRuntime() Runtime {
-	var out Runtime
+func ReadRuntime() ty.Runtime {
+	var out ty.Runtime
 
 	RuntimeFile, err := os.OpenFile("/tmp/shinyRuntimeFile", os.O_RDWR|os.O_CREATE, 0400)
 	ErrHandler(err)

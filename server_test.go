@@ -5,8 +5,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	ty "github.com/septianw/jas/types"
 	"github.com/stretchr/testify/assert"
 )
+
+// func TestBootstrap(t *testing.T) {
+// 	BootstrapAll()
+// }
 
 func TestPingRoute(t *testing.T) {
 	router := SetupRouter()
@@ -20,7 +25,7 @@ func TestPingRoute(t *testing.T) {
 }
 
 func TestPingDb(t *testing.T) {
-	d := Dbconf{
+	d := ty.Dbconf{
 		"mysql",
 		"localhost",
 		3306,
@@ -28,7 +33,8 @@ func TestPingDb(t *testing.T) {
 		"dummypass",
 		"ipoint",
 	}
-	connected, err := PingDb(d)
+	db := LoadDatabase("/home/asep/gocode/src/github.com/septianw/jas/libs/database.so", d)
+	connected, err := db.PingDb(d)
 	t.Log(connected, err)
 	if !connected {
 		t.Fail()
@@ -36,7 +42,7 @@ func TestPingDb(t *testing.T) {
 }
 
 func TestMigrate(t *testing.T) {
-	d := Dbconf{
+	d := ty.Dbconf{
 		"mysql",
 		"localhost",
 		3306,
@@ -44,6 +50,7 @@ func TestMigrate(t *testing.T) {
 		"dummypass",
 		"ipoint",
 	}
+	db := LoadDatabase("/home/asep/gocode/src/github.com/septianw/jas/libs/database.so", d)
 
-	SetupDb(d)
+	db.SetupDb(d)
 }

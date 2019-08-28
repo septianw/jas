@@ -5,13 +5,16 @@ import (
 
 	"plugin"
 
-	"strings"
+	// "strings"
 
 	"encoding/gob"
+	// "errors"
 	"os"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	pak "github.com/septianw/jas/common"
+	ty "github.com/septianw/jas/types"
 	"github.com/spf13/viper"
 )
 
@@ -37,41 +40,47 @@ func LoadSo(path string) *plugin.Plugin {
 	return plug
 }
 
-func LoadCoreModule(moduleName string) *Module {
+func LoadCoreModule(moduleName string) (*Module, error) {
 	var mod Module
-	modpath := strings.Join([]string{Modloc, "core", moduleName, moduleName + ".so"}, "/")
+	var modpath = filepath.Join(Modloc, "core", moduleName, moduleName+".so")
+	_, ferr := os.Stat(modpath)
+	if os.IsExist(ferr) {
+		lib := LoadSo(modpath)
+		bootsym, err := lib.Lookup("Bootstrap")
+		pak.ErrHandler(err)
 
-	lib := LoadSo(modpath)
-	bootsym, err := lib.Lookup("Bootstrap")
-	pak.ErrHandler(err)
+		routersym, err := lib.Lookup("Routers")
+		pak.ErrHandler(err)
 
-	routersym, err := lib.Lookup("Routers")
-	pak.ErrHandler(err)
+		mod.Bootstrap = bootsym.(func())
+		mod.Router = routersym.(func(*gin.Engine))
+		return &mod, nil
+	}
 
-	mod.Bootstrap = bootsym.(func())
-	mod.Router = routersym.(func(*gin.Engine))
-
-	return &mod
+	return nil, ferr
 }
 
-func LoadContribModule(moduleName string) *Module {
+func LoadContribModule(moduleName string) (*Module, error) {
 	var mod Module
-	modpath := strings.Join([]string{Modloc, "contrib", moduleName, moduleName + ".so"}, "/")
+	var modpath = filepath.Join(Modloc, "contrib", moduleName, moduleName+".so")
+	_, ferr := os.Stat(modpath)
+	if os.IsExist(ferr) {
+		lib := LoadSo(modpath)
+		bootsym, err := lib.Lookup("Bootstrap")
+		pak.ErrHandler(err)
 
-	lib := LoadSo(modpath)
-	bootsym, err := lib.Lookup("Bootstrap")
-	pak.ErrHandler(err)
+		routersym, err := lib.Lookup("Routers")
+		pak.ErrHandler(err)
 
-	routersym, err := lib.Lookup("Routers")
-	pak.ErrHandler(err)
+		mod.Bootstrap = bootsym.(func())
+		mod.Router = routersym.(func(*gin.Engine))
+		return &mod, nil
+	}
 
-	mod.Bootstrap = bootsym.(func())
-	mod.Router = routersym.(func(*gin.Engine))
-
-	return &mod
+	return nil, ferr
 }
 
-func WriteRuntime(rt pak.Runtime) {
+func WriteRuntime(rt ty.Runtime) {
 	RuntimeFile, err := os.OpenFile("/tmp/shinyRuntimeFile", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	pak.ErrHandler(err)
 
@@ -81,4 +90,18 @@ func WriteRuntime(rt pak.Runtime) {
 
 	err = RuntimeFile.Close()
 	pak.ErrHandler(err)
+}
+
+func LoadDatabase(libpath string, d ty.Dbconf) ty.Database {
+	// rt := pak.ReadRuntime()
+
+	// pak.ErrHandler(errors.New(rt.Libloc))
+	// pak.ErrHandler(errors.New(filepath.Join(rt.Libloc, "database.so")))
+
+	plug := LoadSo(libpath)
+	symd, err := plug.Lookup("Database")
+	pak.ErrHandler(err)
+	sd := symd.(ty.Database)
+
+	return sd
 }

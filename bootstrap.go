@@ -8,12 +8,18 @@ import (
 
 	"github.com/briandowns/spinner"
 
+	// "errors"
 	"io/ioutil"
+
 	// "reflect"
 	"strings"
 
+	"path/filepath"
+
 	pak "github.com/septianw/jas/common"
-	ora "github.com/septianw/shiny-telegram/experiment01/sharedpak/dboracle"
+	ty "github.com/septianw/jas/types"
+
+	// ora "github.com/septianw/shiny-telegram/experiment01/sharedpak/dboracle"
 	"github.com/spf13/viper"
 )
 
@@ -24,7 +30,7 @@ const BOOTSTRAP_LEVEL_3 = 3
 
 var Spin = spinner.New(spinner.CharSets[24], 100*time.Millisecond)
 var ListenAddr, Dsn string
-var rt pak.Runtime
+var rt ty.Runtime
 
 // var Config
 
@@ -95,10 +101,11 @@ func RunBootLevel0() {
 		} else {
 			cwd, err := os.Getwd()
 			pak.ErrHandler(err)
-			Libloc = cwd + "/lib"
+			Libloc = cwd + "/libs"
 		}
 	}
 	rt.Libloc = Libloc
+	WriteRuntime(rt)
 
 	// time.Sleep(10 * time.Second)
 	Spin.Stop()
@@ -111,12 +118,12 @@ func RunBootLevel0() {
 //   check schema structure
 //   schema exist
 func RunBootLevel1() {
-	var dbconf pak.Dbconf
+	var dbconf ty.Dbconf
+	var db ty.Database
 
 	RunBootLevel0()
 	Spin.Start()
 	Spin.Suffix = "  This is booting level 1"
-	fmt.Printf("server: %+v", GetConfig("server"))
 
 	// basic connectivity
 	// TODO: Semua yang ada comment, itu yang sebelumnya berjalan dengan baik.
@@ -125,53 +132,64 @@ func RunBootLevel1() {
 	// fmt.Printf("|%+v|", reflect.TypeOf(d["hostname"]))
 	// d := viper.Get("database").(map[string]interface{})
 
-	dbconf.Host = viper.GetString("database.hostname") // d["hostname"].(string)
-	dbconf.Type = viper.GetString("database.type")     // d["type"].(string)
-	// convert dari map viper ke int64 dan convert lagi ke uint16
-	// karena int64 terlalu besar untuk menyimpan port yang isinya maksimum hanya 65535
-	dbconf.Port = uint16(viper.GetInt64("database.port"))  // uint16(d["port"].(int64))
-	dbconf.User = viper.GetString("database.username")     // d["username"].(string)
-	dbconf.Pass = viper.GetString("database.password")     // d["password"].(string)
-	dbconf.Database = viper.GetString("database.database") // d["database"].(string)
+	// Check if database library present
+	if _, err := os.Stat(filepath.Join(Libloc, "database.so")); err == nil {
+		dbconf.Host = viper.GetString("database.hostname") // d["hostname"].(string)
+		dbconf.Type = viper.GetString("database.type")     // d["type"].(string)
+		// convert dari map viper ke int64 dan convert lagi ke uint16
+		// karena int64 terlalu besar untuk menyimpan port yang isinya maksimum hanya 65535
+		dbconf.Port = uint16(viper.GetInt64("database.port"))  // uint16(d["port"].(int64))
+		dbconf.User = viper.GetString("database.username")     // d["username"].(string)
+		dbconf.Pass = viper.GetString("database.password")     // d["password"].(string)
+		dbconf.Database = viper.GetString("database.database") // d["database"].(string)
 
-	pak.TryCatchBlock{
-		Try: func() {
-			Spin.Suffix = " Testing database config"
-			succeed, errPing := ora.PingDb(dbconf)
-			if !succeed {
-				log.Fatalln(errPing)
+		db = LoadDatabase(filepath.Join(Libloc, "database.so"), dbconf)
+
+		pak.TryCatchBlock{
+			Try: func() {
+				Spin.Suffix = " Testing database config"
+				succeed, errPing := db.PingDb(dbconf)
+				if !succeed {
+					log.Fatalln(errPing)
+					os.Exit(3)
+				}
+				log.Printf("\n%+v\n", succeed)
+			},
+			Catch: func(e pak.Exception) {
+				log.Fatalf("Error raised while running PingDb: %+v", e)
 				os.Exit(3)
-			}
-		},
-		Catch: func(e pak.Exception) {
-			log.Fatalf("Error raised while running PingDb: %+v", e)
-			os.Exit(3)
-		},
-		Finally: func() {
-			Spin.Suffix = " Database config test success"
-		},
-	}.Do()
+			},
+			Finally: func() {
+				Spin.Suffix = " Database config test success"
+			},
+		}.Do()
 
-	pak.TryCatchBlock{
-		Try: func() {
-			Spin.Suffix = " Migrating database"
-			if !ora.SetupDb(dbconf) {
-				// fmt.Println("Database migration success.")
-				fmt.Println("Database migration failed.")
+		pak.TryCatchBlock{
+			Try: func() {
+				Spin.Suffix = " Migrating database"
+				if !db.SetupDb(dbconf) {
+					// fmt.Println("Database migration success.")
+					fmt.Println("Database migration failed.")
+					os.Exit(3)
+				}
+
+			},
+			Catch: func(e pak.Exception) {
+				log.Fatalf("Error raised while running SetupDb: %+v", e)
 				os.Exit(3)
-			}
+			},
+			Finally: func() {
+				Spin.Suffix = " Database migration success"
+			},
+		}.Do()
 
-		},
-		Catch: func(e pak.Exception) {
-			log.Fatalf("Error raised while running SetupDb: %+v", e)
-			os.Exit(3)
-		},
-		Finally: func() {
-			Spin.Suffix = " Database migration success"
-		},
-	}.Do()
-
-	rt.Dbconf = dbconf
+		rt.Dbconf = dbconf
+	} else {
+		log.Println(" [Warning] Database library not found, skip checking database.")
+		i, e := os.Stat(filepath.Join(Libloc, "database.so"))
+		log.Printf("\n%+v | %+v | %+v\n", os.IsNotExist(e), i, e)
+		log.Println(filepath.Join(Libloc, "database.so"))
+	}
 
 	Spin.Stop()
 }
@@ -217,9 +235,10 @@ func RunBootLevel2() {
 	Routers = SetupRouter()
 
 	for _, coreModule := range coreModules {
-		m := LoadCoreModule(coreModule.Name())
-		m.Bootstrap()
-		m.Router(Routers)
+		if m, err := LoadCoreModule(coreModule.Name()); err == nil {
+			m.Bootstrap()
+			m.Router(Routers)
+		}
 	}
 	// Load Core module done
 
@@ -260,9 +279,10 @@ func RunBootLevel3() {
 	// Routers = SetupRouter()
 
 	for _, contribModule := range contribModules {
-		m := LoadContribModule(contribModule.Name())
-		m.Bootstrap()
-		m.Router(Routers)
+		if m, err := LoadContribModule(contribModule.Name()); err == nil {
+			m.Bootstrap()
+			m.Router(Routers)
+		}
 	}
 
 	// time.Sleep(10 * time.Second)

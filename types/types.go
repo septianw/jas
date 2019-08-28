@@ -1,5 +1,11 @@
 package types
 
+import (
+	"database/sql"
+)
+
+type Db string
+
 type Dbconf struct {
 	Type     string
 	Host     string
@@ -18,4 +24,11 @@ type Runtime struct {
 	Dbconf         Dbconf
 	Modloc         string
 	Libloc         string
+}
+
+type Database interface {
+	PingDb(Dbconf) (bool, error)
+	OpenDb(Dbconf) (*sql.DB, error)
+	Migrate(string, Dbconf)
+	SetupDb(Dbconf) bool
 }
