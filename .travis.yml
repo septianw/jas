@@ -1,3 +1,5 @@
+language: go
+os: linux
 addons:
   sonarcloud:
     organization: "septianw-github"
