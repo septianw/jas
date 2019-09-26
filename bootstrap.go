@@ -1,3 +1,19 @@
+/*
+   Copyright 2019 Septian Wibisono
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+*/
 package main
 
 import (
@@ -101,11 +117,11 @@ func RunBootLevel0() {
 		} else {
 			cwd, err := os.Getwd()
 			pak.ErrHandler(err)
-			Libloc = cwd + "/libs"
+			Libloc = filepath.Join(cwd, "libs")
 		}
 	}
 	rt.Libloc = Libloc
-	WriteRuntime(rt)
+	pak.WriteRuntime(rt)
 
 	// time.Sleep(10 * time.Second)
 	Spin.Stop()
@@ -122,6 +138,7 @@ func RunBootLevel1() {
 	var db ty.Database
 
 	RunBootLevel0()
+	var rt = pak.ReadRuntime()
 	Spin.Start()
 	Spin.Suffix = "  This is booting level 1"
 
@@ -131,6 +148,18 @@ func RunBootLevel1() {
 	// d := GetConfig("database").(map[string]interface{})
 	// fmt.Printf("|%+v|", reflect.TypeOf(d["hostname"]))
 	// d := viper.Get("database").(map[string]interface{})
+
+	Migloc = viper.GetString("migrationLocation")
+	if strings.Compare(Migloc, "") == 0 {
+		if strings.Compare(LIBRARY_LOCATION, "") != 0 {
+			Migloc = LIBRARY_LOCATION
+		} else {
+			cwd, err := os.Getwd()
+			pak.ErrHandler(err)
+			Migloc = filepath.Join(cwd, "migrations")
+		}
+	}
+	rt.Migloc = Migloc
 
 	// Check if database library present
 	if _, err := os.Stat(filepath.Join(Libloc, "database.so")); err == nil {
@@ -143,7 +172,7 @@ func RunBootLevel1() {
 		dbconf.Pass = viper.GetString("database.password")     // d["password"].(string)
 		dbconf.Database = viper.GetString("database.database") // d["database"].(string)
 
-		db = LoadDatabase(filepath.Join(Libloc, "database.so"), dbconf)
+		db = pak.LoadDatabase(filepath.Join(Libloc, "database.so"), dbconf)
 
 		pak.TryCatchBlock{
 			Try: func() {
@@ -153,7 +182,7 @@ func RunBootLevel1() {
 					log.Fatalln(errPing)
 					os.Exit(3)
 				}
-				log.Printf("\n%+v\n", succeed)
+				log.Printf("Ping database succeed: %+v\n", succeed)
 			},
 			Catch: func(e pak.Exception) {
 				log.Fatalf("Error raised while running PingDb: %+v", e)
@@ -166,10 +195,10 @@ func RunBootLevel1() {
 
 		pak.TryCatchBlock{
 			Try: func() {
-				Spin.Suffix = " Migrating database"
-				if !db.SetupDb(dbconf) {
+				Spin.Suffix = " Migrating database structure"
+				if !db.Migrate(rt.Migloc, dbconf) {
 					// fmt.Println("Database migration success.")
-					fmt.Println("Database migration failed.")
+					fmt.Println("Database structure migration failed.")
 					os.Exit(3)
 				}
 
@@ -179,7 +208,7 @@ func RunBootLevel1() {
 				os.Exit(3)
 			},
 			Finally: func() {
-				Spin.Suffix = " Database migration success"
+				Spin.Suffix = " Database structure migration success"
 			},
 		}.Do()
 
@@ -190,6 +219,8 @@ func RunBootLevel1() {
 		log.Printf("\n%+v | %+v | %+v\n", os.IsNotExist(e), i, e)
 		log.Println(filepath.Join(Libloc, "database.so"))
 	}
+
+	pak.WriteRuntime(rt)
 
 	Spin.Stop()
 }
@@ -204,9 +235,10 @@ func RunBootLevel1() {
 // collecting module
 // setup basic module
 func RunBootLevel2() {
-	// var modules []*Module
-
 	RunBootLevel1()
+	// var modules []*Module
+	var rt = pak.ReadRuntime()
+
 	Spin.Start()
 	Spin.Suffix = "  This is booting level 2"
 
@@ -220,31 +252,45 @@ func RunBootLevel2() {
 		} else {
 			cwd, err := os.Getwd()
 			pak.ErrHandler(err)
-			Modloc = cwd + "/modules"
+			Modloc = filepath.Join(cwd, "modules")
 		}
 	}
+	// log.Println(Modloc)
 
 	rt.Modloc = Modloc
 
 	Spin.Suffix = " Initiate core modules"
-	coreModules, err := ioutil.ReadDir(strings.Join(
-		[]string{Modloc, "core"}, "/"))
+	coreModules, err := ioutil.ReadDir(filepath.Join(Modloc, "core"))
 	pak.ErrHandler(err)
 
 	// Setup router for the first time.
 	Routers = SetupRouter()
 
+	// TODO: ada beberapa skenario disini:
+	// 1. muat semua module dalam direktori secara langsung.
+	//    semua module akan terinstall dan termuat secara otomatis.
+	// 2. memuat, menginstall, dan uninstall module dilakukan manual,
+	//    melalui sebuah endpoint untuk melakukan operasi itu.
 	for _, coreModule := range coreModules {
-		if m, err := LoadCoreModule(coreModule.Name()); err == nil {
-			m.Bootstrap()
-			m.Router(Routers)
+		// if err := CopyAllSchema(coreModule.Name()); err != nil {
+		// 	pak.ErrHandler(err)
+		// }
+		if coreModule.IsDir() {
+			// LoadCoreModule(coreModule.Name())
+			if m, err := LoadCoreModule(coreModule.Name()); (err == nil) && (m != nil) {
+				m.Bootstrap()
+				m.Router(Routers)
+			} else {
+				pak.ErrHandler(err)
+			}
 		}
 	}
 	// Load Core module done
 
-	// fmt.Printf("%+v", modloc)
+	// fmt.Printf("%+v", Modloc)
 
 	// time.Sleep(10 * time.Second)
+	pak.WriteRuntime(rt)
 	Spin.Stop()
 }
 
@@ -279,9 +325,14 @@ func RunBootLevel3() {
 	// Routers = SetupRouter()
 
 	for _, contribModule := range contribModules {
-		if m, err := LoadContribModule(contribModule.Name()); err == nil {
-			m.Bootstrap()
-			m.Router(Routers)
+		if contribModule.IsDir() {
+			if err := CopyAllSchema(contribModule.Name()); err != nil {
+				pak.ErrHandler(err)
+			}
+			if m, err := LoadContribModule(contribModule.Name()); err == nil {
+				m.Bootstrap()
+				m.Router(Routers)
+			}
 		}
 	}
 
@@ -304,7 +355,7 @@ func Bootstrap(level int) {
 		RunBootLevel3()
 		break
 	}
-	WriteRuntime(rt)
+	pak.WriteRuntime(rt)
 }
 
 func BootstrapAll() {

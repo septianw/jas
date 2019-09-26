@@ -1,3 +1,19 @@
+/*
+   Copyright 2019 Septian Wibisono
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+*/
 package common
 
 import (
@@ -7,7 +23,10 @@ import (
 	"strings"
 
 	// "github.com/juju/loggo"
+	"plugin"
 	"runtime/debug"
+
+	// pak "github.com/septianw/jas/common"
 
 	ty "github.com/septianw/jas/types"
 )
@@ -35,10 +54,19 @@ func (tc TryCatchBlock) Do() {
 	tc.Try()
 }
 
+// This function will load *.so library without parsing its function.
+// After load library with this function you need to lookup your function.
+func LoadSo(path string) *plugin.Plugin {
+	plug, err := plugin.Open(path)
+	ErrHandler(err)
+
+	return plug
+}
+
 func ReadRuntime() ty.Runtime {
 	var out ty.Runtime
 
-	RuntimeFile, err := os.OpenFile("/tmp/shinyRuntimeFile", os.O_RDWR|os.O_CREATE, 0400)
+	RuntimeFile, err := os.OpenFile("/tmp/shinyRuntimeFile", os.O_RDWR, 0600)
 	ErrHandler(err)
 
 	dec := gob.NewDecoder(RuntimeFile)
@@ -49,6 +77,18 @@ func ReadRuntime() ty.Runtime {
 	ErrHandler(err)
 
 	return out
+}
+
+func WriteRuntime(rt ty.Runtime) {
+	RuntimeFile, err := os.OpenFile("/tmp/shinyRuntimeFile", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	ErrHandler(err)
+
+	enc := gob.NewEncoder(RuntimeFile)
+	err = enc.Encode(rt)
+	ErrHandler(err)
+
+	err = RuntimeFile.Close()
+	ErrHandler(err)
 }
 
 func ErrHandler(err error) {
@@ -71,4 +111,18 @@ func ErrHandler(err error) {
 			log.Println(err)
 		}
 	}
+}
+
+func LoadDatabase(libpath string, d ty.Dbconf) ty.Database {
+	// rt := pak.ReadRuntime()
+
+	// pak.ErrHandler(errors.New(rt.Libloc))
+	// pak.ErrHandler(errors.New(filepath.Join(rt.Libloc, "database.so")))
+
+	plug := LoadSo(libpath)
+	symd, err := plug.Lookup("Database")
+	ErrHandler(err)
+	sd := symd.(ty.Database)
+
+	return sd
 }

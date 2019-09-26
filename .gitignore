@@ -1,2 +1,6 @@
 jas
 libs/*.so
+modules/contrib/*
+modules/core/*
+bungkus
+

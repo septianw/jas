@@ -5,10 +5,12 @@ port = 4519
 moduleLocation = ""
 # if this empty, will use default location ./lib
 libraryLocation = ""
+# if this empty, will use default location ./migrations
+migrationLocation = ""
 
 [database]
 hostname = "localhost"
 port = 3306
 username = "asep"
 password = "dummypass"
-database = "mysql"
+database = "ipoint"
