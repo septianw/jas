@@ -28,6 +28,7 @@ import (
 	// "errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 
 	"bufio"
@@ -72,17 +73,17 @@ func LoadDatabase() ty.Database {
 	return db
 }
 
-func CopySchema(path string) error {
+func CopySchema(fpath string) error {
 	rt := pak.ReadRuntime()
-	return copy.Copy(path, rt.Migloc)
+	return copy.Copy(fpath, rt.Migloc)
 }
 
-func CopyAllSchema(path string) error {
-	return filepath.Walk(path, func(base string, finfo os.FileInfo, perr error) error {
+func CopyAllSchema(fpath string) error {
+	return filepath.Walk(fpath, func(base string, finfo os.FileInfo, perr error) error {
 		var reval error = nil
 
-		if perr != nil {
-			reval = CopySchema(filepath.Join(base, "schema"))
+		if (perr == nil) && (strings.Compare("schema", path.Base(base)) == 0) {
+			reval = CopySchema(base)
 		} else {
 			reval = perr
 		}
@@ -115,6 +116,45 @@ func MountModule(path string) (*Module, error) {
 	}
 
 	return nil, ferr
+}
+
+func SetModuleMounted(moduleName string) (status bool, err error) {
+	status = false
+	meta, err := GetModuleMetadata(moduleName)
+	if err != nil {
+		log.Printf("Failed to get Module Metadata: %s", err.Error())
+		return
+	}
+
+	meta.Status = "mounted"
+
+	err = SetModuleMetadata(meta)
+	if err != nil {
+		log.Printf("Failed to set Module Metadata: %s", err.Error())
+		return
+	}
+
+	status = true
+	return
+}
+func SetModuleUnmounted(moduleName string) (status bool, err error) {
+	status = false
+	meta, err := GetModuleMetadata(moduleName)
+	if err != nil {
+		log.Printf("Failed to get Module Metadata: %s", err.Error())
+		return
+	}
+
+	meta.Status = "loaded"
+
+	err = SetModuleMetadata(meta)
+	if err != nil {
+		log.Printf("Failed to set Module Metadata: %s", err.Error())
+		return
+	}
+
+	status = true
+	return
 }
 
 // FIXME: belum tuntas, still satisfy unit testing.
@@ -161,6 +201,7 @@ func LoadModule(modulePath string) {
 		err := rows.Scan(&count)
 		pak.ErrHandler(err)
 	}
+	log.Printf("\nquery: %+v\n", qcheck)
 	log.Printf("\nres count: %+v\n", count)
 
 	if count == 0 {
@@ -204,26 +245,6 @@ func IsModuleEnabled(moduleName string) bool {
 	return enabled
 }
 
-func GetModuleMetadata(moduleName string) (meta ty.ModuleMetadata, err error) {
-	rt = pak.ReadRuntime()
-	sdb := LoadDatabase()
-	db, err := sdb.OpenDb(rt.Dbconf)
-	pak.ErrHandler(err)
-	defer db.Close()
-
-	q := fmt.Sprintf("select name, version, status, sopath from modules where name = '%s'", moduleName)
-	rows, err := db.Query(q)
-	pak.ErrHandler(err)
-
-	for rows.Next() {
-		err := rows.Scan(&meta.Name, &meta.Version, &meta.Status, &meta.Sopath)
-		pak.ErrHandler(err)
-	}
-
-	log.Printf("ModuleMeta: %+v\n", meta)
-	return
-}
-
 // FIXME: still satisfy unit testing.
 // TODO: fokus ke mount module
 // Cari module di daftar enabled, kalau ada aktifkan, kalau tidak ada lewati.
@@ -253,4 +274,26 @@ func LoadCoreModule(moduleName string) (*Module, error) {
 
 func LoadContribModule(moduleName string) (*Module, error) {
 	return lmod("contrib", moduleName)
+}
+
+// Function untuk initiate module. Function ini bergantung pada Modloc
+func InitiateModules(modules []os.FileInfo, moduleType string) {
+	for _, module := range modules {
+		// if err := CopyAllSchema(coreModule.Name()); err != nil {
+		// 	pak.ErrHandler(err)
+		// }
+		if module.IsDir() {
+			// LoadCoreModule(coreModule.Name())
+
+			err := CopyAllSchema(filepath.Join(Modloc, moduleType, module.Name()))
+			pak.ErrHandler(err)
+
+			if m, err := lmod(moduleType, module.Name()); (err == nil) && (m != nil) {
+				m.Bootstrap()
+				m.Router(Routers)
+			} else {
+				pak.ErrHandler(err)
+			}
+		}
+	}
 }
