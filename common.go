@@ -285,10 +285,10 @@ func InitiateModules(modules []os.FileInfo, moduleType string) {
 		if module.IsDir() {
 			// LoadCoreModule(coreModule.Name())
 
-			err := CopyAllSchema(filepath.Join(Modloc, moduleType, coreModule.Name()))
+			err := CopyAllSchema(filepath.Join(Modloc, moduleType, module.Name()))
 			pak.ErrHandler(err)
 
-			if m, err := lmod(moduleType, coreModule.Name()); (err == nil) && (m != nil) {
+			if m, err := lmod(moduleType, module.Name()); (err == nil) && (m != nil) {
 				m.Bootstrap()
 				m.Router(Routers)
 			} else {
