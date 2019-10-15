@@ -277,6 +277,9 @@ func RunBootLevel2() {
 		// }
 		if coreModule.IsDir() {
 			// LoadCoreModule(coreModule.Name())
+			err := CopyAllSchema(filepath.Join(Modloc, "core", coreModule.Name()))
+			pak.ErrHandler(err)
+
 			if m, err := LoadCoreModule(coreModule.Name()); (err == nil) && (m != nil) {
 				m.Bootstrap()
 				m.Router(Routers)
@@ -326,12 +329,14 @@ func RunBootLevel3() {
 
 	for _, contribModule := range contribModules {
 		if contribModule.IsDir() {
-			if err := CopyAllSchema(contribModule.Name()); err != nil {
+			if err := CopyAllSchema(filepath.Join(Modloc, "contrib", contribModule.Name())); err != nil {
 				pak.ErrHandler(err)
 			}
-			if m, err := LoadContribModule(contribModule.Name()); err == nil {
+			if m, err := LoadContribModule(contribModule.Name()); (err == nil) && (m != nil) {
 				m.Bootstrap()
 				m.Router(Routers)
+			} else {
+				pak.ErrHandler(err)
 			}
 		}
 	}
