@@ -123,9 +123,9 @@ func RunBootLevel0() {
 		}
 	}
 	rt.Libloc = Libloc
-	// Mutex.Lock()
-	// pak.WriteRuntime(rt)
-	// Mutex.Unlock()
+	Mutex.Lock()
+	pak.WriteRuntime(rt)
+	Mutex.Unlock()
 
 	// time.Sleep(10 * time.Second)
 	Spin.Stop()
@@ -239,7 +239,9 @@ func RunBootLevel1() {
 		log.Println(filepath.Join(Libloc, "database.so"))
 	}
 
-	// pak.WriteRuntime(rt)
+	Mutex.Lock()
+	pak.WriteRuntime(rt)
+	Mutex.Unlock()
 
 	Spin.Stop()
 }
@@ -295,7 +297,9 @@ func RunBootLevel2() {
 	// fmt.Printf("%+v", Modloc)
 
 	// time.Sleep(10 * time.Second)
-	// pak.WriteRuntime(rt)
+	Mutex.Lock()
+	pak.WriteRuntime(rt)
+	Mutex.Unlock()
 	Spin.Stop()
 }
 
@@ -344,6 +348,10 @@ func RunBootLevel3() {
 	}
 
 	// time.Sleep(10 * time.Second)
+	Mutex.Lock()
+	pak.WriteRuntime(rt)
+	Mutex.Unlock()
+
 	Spin.Stop()
 }
 

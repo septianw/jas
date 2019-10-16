@@ -24,7 +24,11 @@ import (
 
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
-	gin.SetMode("release")
+	if *Mode == "production" {
+		gin.SetMode("release")
+	} else {
+		gin.SetMode("debug")
+	}
 
 	switch STAGE {
 	case "development":
