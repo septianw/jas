@@ -24,6 +24,7 @@ import (
 	"log"
 	"net/http"
 
+	"flag"
 	"os"
 	"os/signal"
 	"syscall"
@@ -34,9 +35,17 @@ import (
 
 var Modloc, Libloc, Migloc string = "", "", ""
 var Routers *gin.Engine
+var Mode *string
 
 func main() {
-	BootstrapAll()
+	Mode = flag.String("mode", "production", "Running mode: production, development, maintenance")
+
+	flag.Parse()
+	if *Mode == "maintenance" {
+		Bootstrap(BOOTSTRAP_LEVEL_1)
+	} else {
+		BootstrapAll()
+	}
 
 	// r := SetupRouter()
 	srv := &http.Server{
