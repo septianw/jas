@@ -31,6 +31,7 @@ import (
 	"strings"
 
 	"path/filepath"
+	"sync"
 
 	pak "github.com/septianw/jas/common"
 	ty "github.com/septianw/jas/types"
@@ -47,6 +48,7 @@ const BOOTSTRAP_LEVEL_3 = 3
 var Spin = spinner.New(spinner.CharSets[24], 100*time.Millisecond)
 var ListenAddr, Dsn string
 var rt ty.Runtime
+var Mutex sync.Mutex
 
 // var Config
 
@@ -121,7 +123,9 @@ func RunBootLevel0() {
 		}
 	}
 	rt.Libloc = Libloc
+	Mutex.Lock()
 	pak.WriteRuntime(rt)
+	Mutex.Unlock()
 
 	// time.Sleep(10 * time.Second)
 	Spin.Stop()
@@ -138,7 +142,7 @@ func RunBootLevel1() {
 	var db ty.Database
 
 	RunBootLevel0()
-	var rt = pak.ReadRuntime()
+	// var rt = pak.ReadRuntime()
 	Spin.Start()
 	Spin.Suffix = "  This is booting level 1"
 
@@ -150,6 +154,7 @@ func RunBootLevel1() {
 	// d := viper.Get("database").(map[string]interface{})
 
 	Migloc = viper.GetString("migrationLocation")
+	Modloc = viper.GetString("moduleLocation")
 	if strings.Compare(Migloc, "") == 0 {
 		if strings.Compare(LIBRARY_LOCATION, "") != 0 {
 			Migloc = LIBRARY_LOCATION
@@ -159,7 +164,21 @@ func RunBootLevel1() {
 			Migloc = filepath.Join(cwd, "migrations")
 		}
 	}
+	// if modloc is empty use default location Current Working Directory
+	if strings.Compare(Modloc, "") == 0 {
+		if strings.Compare(MODULE_LOCATION, "") != 0 {
+			Modloc = MODULE_LOCATION
+		} else {
+			cwd, err := os.Getwd()
+			pak.ErrHandler(err)
+			Modloc = filepath.Join(cwd, "modules")
+		}
+	}
+
+	// log.Println(Modloc)
 	rt.Migloc = Migloc
+	// Load Core module
+	rt.Modloc = Modloc
 
 	// Check if database library present
 	if _, err := os.Stat(filepath.Join(Libloc, "database.so")); err == nil {
@@ -220,7 +239,9 @@ func RunBootLevel1() {
 		log.Println(filepath.Join(Libloc, "database.so"))
 	}
 
+	Mutex.Lock()
 	pak.WriteRuntime(rt)
+	Mutex.Unlock()
 
 	Spin.Stop()
 }
@@ -237,27 +258,10 @@ func RunBootLevel1() {
 func RunBootLevel2() {
 	RunBootLevel1()
 	// var modules []*Module
-	var rt = pak.ReadRuntime()
+	// var rt = pak.ReadRuntime()
 
 	Spin.Start()
 	Spin.Suffix = "  This is booting level 2"
-
-	// Load Core module
-	Modloc = viper.GetString("moduleLocation")
-
-	// if modloc is empty use default location Current Working Directory
-	if strings.Compare(Modloc, "") == 0 {
-		if strings.Compare(MODULE_LOCATION, "") != 0 {
-			Modloc = MODULE_LOCATION
-		} else {
-			cwd, err := os.Getwd()
-			pak.ErrHandler(err)
-			Modloc = filepath.Join(cwd, "modules")
-		}
-	}
-	// log.Println(Modloc)
-
-	rt.Modloc = Modloc
 
 	Spin.Suffix = " Initiate core modules"
 	coreModules, err := ioutil.ReadDir(filepath.Join(Modloc, "core"))
@@ -293,7 +297,9 @@ func RunBootLevel2() {
 	// fmt.Printf("%+v", Modloc)
 
 	// time.Sleep(10 * time.Second)
+	Mutex.Lock()
 	pak.WriteRuntime(rt)
+	Mutex.Unlock()
 	Spin.Stop()
 }
 
@@ -342,6 +348,10 @@ func RunBootLevel3() {
 	}
 
 	// time.Sleep(10 * time.Second)
+	Mutex.Lock()
+	pak.WriteRuntime(rt)
+	Mutex.Unlock()
+
 	Spin.Stop()
 }
 
@@ -360,7 +370,9 @@ func Bootstrap(level int) {
 		RunBootLevel3()
 		break
 	}
+	Mutex.Lock()
 	pak.WriteRuntime(rt)
+	Mutex.Unlock()
 }
 
 func BootstrapAll() {
