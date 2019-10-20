@@ -76,28 +76,28 @@ import (
 // 	assert.Equal(t, true, done)
 // }
 
-// func TestBootstrapLevel0(t *testing.T) {
-// 	Bootstrap(BOOTSTRAP_LEVEL_0)
+func TestBootstrapLevel0(t *testing.T) {
+	Bootstrap(BOOTSTRAP_LEVEL_0)
 
-// 	rt := pak.ReadRuntime()
-// 	cwd, err := os.Getwd()
-// 	if err != nil {
-// 		t.Fail()
-// 	}
+	rt := pak.ReadRuntime()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fail()
+	}
 
-// 	t.Logf(`
-// 	ListenAddr: %s,
-// 	Libloc: %s,
-// 	runtime: %+v
-// 	`, ListenAddr, Libloc, rt)
+	t.Logf(`
+	ListenAddr: %s,
+	Libloc: %s,
+	runtime: %+v
+	`, ListenAddr, Libloc, rt)
 
-// 	t.Logf("\npath: %s", filepath.Join(cwd, "now"))
+	t.Logf("\npath: %s", filepath.Join(cwd, "now"))
 
-// 	assert.Equal(t, "192.168.122.1:4519", ListenAddr)
-// 	assert.Equal(t, filepath.Join(cwd, "libs"), Libloc)
-// 	// assert.IsType(t, ty.Runtime, rt)
-// 	// assert.ObjectsAreEqual(ty.Runtime, rt)
-// }
+	assert.Equal(t, "192.168.122.1:4519", ListenAddr)
+	assert.Equal(t, filepath.Join(cwd, "libs"), Libloc)
+	// assert.IsType(t, ty.Runtime, rt)
+	// assert.ObjectsAreEqual(ty.Runtime, rt)
+}
 
 // func TestBootstrapLevel1(t *testing.T) {
 // 	Bootstrap(BOOTSTRAP_LEVEL_1)
@@ -118,40 +118,40 @@ import (
 // 	assert.Equal(t, filepath.Join(cwd, "migrations"), Migloc)
 // }
 
-func TestBootstrapLevel2(t *testing.T) {
-	os.Setenv("cwd", "/home/asep/gocode/src/github.com/septianw/jas")
+// func TestBootstrapLevel2(t *testing.T) {
+// 	os.Setenv("cwd", "/home/asep/gocode/src/github.com/septianw/jas")
 
-	Bootstrap(BOOTSTRAP_LEVEL_3)
+// 	Bootstrap(BOOTSTRAP_LEVEL_3)
 
-	rt := pak.ReadRuntime()
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fail()
-	}
+// 	rt := pak.ReadRuntime()
+// 	cwd, err := os.Getwd()
+// 	if err != nil {
+// 		t.Fail()
+// 	}
 
-	t.Logf(`
-	ListenAddr: %s,
-	Libloc: %s,
-	Migloc: %s,
-	Modloc: %s,
-	runtime: %+v
-	`, ListenAddr, Libloc, Migloc, Modloc, rt)
+// 	t.Logf(`
+// 	ListenAddr: %s,
+// 	Libloc: %s,
+// 	Migloc: %s,
+// 	Modloc: %s,
+// 	runtime: %+v
+// 	`, ListenAddr, Libloc, Migloc, Modloc, rt)
 
-	assert.Equal(t, filepath.Join(cwd, "modules"), Modloc)
-}
+// 	assert.Equal(t, filepath.Join(cwd, "modules"), Modloc)
+// }
 
-func TestIsModuleEnabled(t *testing.T) {
-	os.Setenv("cwd", "/home/asep/gocode/src/github.com/septianw/jas")
-	isUser := IsModuleEnabled("user")
-	if isUser == false {
-		t.Fail()
-	}
+// func TestIsModuleEnabled(t *testing.T) {
+// 	os.Setenv("cwd", "/home/asep/gocode/src/github.com/septianw/jas")
+// 	isUser := IsModuleEnabled("user")
+// 	if isUser == false {
+// 		t.Fail()
+// 	}
 
-	isNotFound := IsModuleEnabled("notfound")
-	if isNotFound == true {
-		t.Fail()
-	}
+// 	isNotFound := IsModuleEnabled("notfound")
+// 	if isNotFound == true {
+// 		t.Fail()
+// 	}
 
-	t.Logf("is User: %+v", isUser)
-	t.Logf("is NotFound: %+v", isNotFound)
-}
+// 	t.Logf("is User: %+v", isUser)
+// 	t.Logf("is NotFound: %+v", isNotFound)
+// }
