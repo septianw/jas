@@ -213,6 +213,7 @@ func LoadModule(modulePath string) {
 	}
 }
 
+// FIXME: Affected by this issue https://github.com/septianw/jas/issues/10
 func IsModuleEnabled(moduleName string) bool {
 	var modules []string
 	var enabled bool = false
@@ -257,12 +258,18 @@ func lmod(modtype, moduleName string) (*Module, error) {
 	// TODO:
 	// - cari module di daftar enabled.
 	// - kalau ada aktifkan.
-
-	if IsModuleEnabled(moduleName) {
+	if strings.Compare(modtype, "core") == 0 {
 		meta, err := GetModuleMetadata(moduleName)
 		pak.ErrHandler(err)
 		// log.Printf("\nMeta: %+v\n", meta)
 		mod, err = MountModule(meta.Sopath)
+	} else {
+		if IsModuleEnabled(moduleName) {
+			meta, err := GetModuleMetadata(moduleName)
+			pak.ErrHandler(err)
+			// log.Printf("\nMeta: %+v\n", meta)
+			mod, err = MountModule(meta.Sopath)
+		}
 	}
 
 	return mod, err
@@ -297,3 +304,7 @@ func InitiateModules(modules []os.FileInfo, moduleType string) {
 		}
 	}
 }
+
+// func LoadMiddlewares() (handlers []gin.HandlerFunc) {
+
+// }

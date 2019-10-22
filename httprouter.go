@@ -17,9 +17,11 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/septianw/jas/common"
 )
 
 func SetupRouter() *gin.Engine {
@@ -49,15 +51,20 @@ func SetupRouter() *gin.Engine {
 	// })
 
 	r.NoRoute(func(c *gin.Context) {
-		c.JSON(404, gin.H{"code": "PAGE_NOT_FOUND", "message": "Page not found"})
+		common.SendHttpError(c, common.PAGE_NOT_FOUND_CODE, errors.New("Page not found."))
 	})
 
 	r.NoMethod(func(c *gin.Context) {
-		c.JSON(404, gin.H{"code": "PAGE_NOT_FOUND", "message": "Page not found"})
+		common.SendHttpError(c, common.PAGE_NOT_FOUND_CODE, errors.New("Page not found."))
 	})
 
 	r.GET("/", func(c *gin.Context) {
-		c.String(http.StatusOK, "Hello World")
+		middleware, exist := c.Get("middleware")
+		if exist {
+			c.String(http.StatusOK, "Hello World"+middleware.(string))
+		} else {
+			c.String(http.StatusOK, "Hello World")
+		}
 	})
 
 	return r

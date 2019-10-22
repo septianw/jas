@@ -31,7 +31,7 @@ func cleanupMig(migloc string) (err error) {
 func main() {
 	// v := flag.String("v", VERSION, "Print version number")
 	flag.Parse()
-	if flag.Args()[0] == "version" {
+	if (len(flag.Args()) != 0) && (flag.Args()[0] == "version") {
 		println(VERSION)
 		os.Exit(0)
 	}

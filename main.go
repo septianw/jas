@@ -33,12 +33,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var Modloc, Libloc, Migloc string = "", "", ""
+var Modloc, Libloc, Migloc, MiddlewareLoc string = "", "", "", ""
 var Routers *gin.Engine
 var Mode *string
 
 func main() {
 	Mode = flag.String("mode", "production", "Running mode: production, development, maintenance")
+
+	flag.Parse()
+	if (len(flag.Args()) != 0) && (flag.Args()[0] == "version") {
+		println(VERSION)
+		os.Exit(0)
+	}
 
 	flag.Parse()
 	if *Mode == "maintenance" {

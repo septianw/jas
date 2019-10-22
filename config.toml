@@ -5,6 +5,8 @@ port = 4519
 moduleLocation = ""
 # if this empty, will use default location ./lib
 libraryLocation = ""
+# if this empty, will use default location ./middlewares
+middlewareLocation = ""
 # if this empty, will use default location ./migrations
 migrationLocation = ""
 

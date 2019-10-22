@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
+	"github.com/gin-gonic/gin"
 
 	// "errors"
 	"io/ioutil"
@@ -270,6 +271,57 @@ func RunBootLevel2() {
 	// Setup router for the first time.
 	Routers = SetupRouter()
 
+	Routers.Use(func(c *gin.Context) {
+		c.Set("middleware", "set")
+		fmt.Println("ininana")
+		c.Next()
+	})
+
+	// Load middlewares
+	MiddlewareLoc = viper.GetString("middlewareLocation")
+	if strings.Compare(MiddlewareLoc, "") == 0 {
+		if strings.Compare(MIDDLEWARE_LOCATION, "") != 0 {
+			MiddlewareLoc = MIDDLEWARE_LOCATION
+		} else {
+			cwd, err := os.Getwd()
+			pak.ErrHandler(err)
+			MiddlewareLoc = filepath.Join(cwd, "middlewares")
+		}
+	}
+	rt.MiddlewareLoc = MiddlewareLoc
+
+	mdwares, err := ioutil.ReadDir(MiddlewareLoc)
+	pak.ErrHandler(err)
+
+	log.Println("loading middlewares")
+
+	for _, mdware := range mdwares {
+		// if err := CopyAllSchema(coreModule.Name()); err != nil {
+		// 	pak.ErrHandler(err)
+		// }
+		log.Println(mdware.Name())
+		// if mdware.IsDir() {
+		log.Println(mdware.Name())
+		log.Println(MiddlewareLoc)
+		plug := pak.LoadSo(filepath.Join(MiddlewareLoc, mdware.Name()))
+		sym, err := plug.Lookup("MiddleFunc")
+		pak.ErrHandler(err)
+		MiddleFunc := sym.(func() gin.HandlerFunc)
+		Routers.Use(MiddleFunc())
+
+		// LoadCoreModule(coreModule.Name())
+		// err := CopyAllSchema(filepath.Join(Modloc, "core", coreModule.Name()))
+		// pak.ErrHandler(err)
+
+		// if m, err := LoadCoreModule(coreModule.Name()); (err == nil) && (m != nil) {
+		// 	m.Bootstrap()
+		// 	m.Router(Routers)
+		// } else {
+		// 	pak.ErrHandler(err)
+		// }
+		// }
+	}
+
 	// TODO: ada beberapa skenario disini:
 	// 1. muat semua module dalam direktori secara langsung.
 	//    semua module akan terinstall dan termuat secara otomatis.
@@ -371,6 +423,7 @@ func Bootstrap(level int) {
 		break
 	}
 	Mutex.Lock()
+	log.Println(rt)
 	pak.WriteRuntime(rt)
 	Mutex.Unlock()
 }

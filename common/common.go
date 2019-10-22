@@ -23,11 +23,14 @@ import (
 	"strings"
 
 	// "github.com/juju/loggo"
+	"fmt"
+	"net/http"
 	"plugin"
 	"runtime/debug"
 
 	// pak "github.com/septianw/jas/common"
 
+	"github.com/gin-gonic/gin"
 	ty "github.com/septianw/jas/types"
 )
 
@@ -38,6 +41,41 @@ type TryCatchBlock struct {
 	Catch   func(Exception)
 	Finally func()
 }
+
+/*
+ERROR CODE LEGEND:
+error containt 4 digits,
+first digit represent error location either module or main app
+1 for main app
+2 for module
+
+second digit represent error at level app or database
+1 for app
+2 for database
+
+third digit represent error with input variable or variable manipulation
+0 for skipping this error
+1 for input validation error
+2 for variable manipulation error
+3 for input query result empty record
+
+fourth digit represent error with logic, this type of error have
+increasing error number based on which part of code that error.
+0 for skipping this error
+1 for unknown logical error
+2 for whole operation fail, operation end unexpectedly
+*/
+
+const DATABASE_EXEC_FAIL_CODE = 2200
+const MODULE_OPERATION_FAIL_CODE = 2102
+const INPUT_VALIDATION_FAIL_CODE = 2110
+const RECORD_NOT_FOUND_CODE = 2230
+const PAGE_NOT_FOUND_CODE = 2100
+const NOT_ACCEPTABLE_CODE = 2112
+
+var NOT_ACCEPTABLE = gin.H{"code": NOT_ACCEPTABLE_CODE, "message": "You are trying to request something not acceptible here."}
+var PAGE_NOT_FOUND = gin.H{"code": PAGE_NOT_FOUND_CODE, "message": "You are find something we can't found it here."}
+var RECORD_NOT_FOUND = gin.H{"code": RECORD_NOT_FOUND_CODE, "message": "You are find something we can't found it here."}
 
 func (tc TryCatchBlock) Do() {
 	if tc.Finally != nil {
@@ -125,4 +163,24 @@ func LoadDatabase(libpath string, d ty.Dbconf) ty.Database {
 	sd := symd.(ty.Database)
 
 	return sd
+}
+
+func SendHttpError(c *gin.Context, errType uint, err error) {
+	// FIXME: kurang yang forbidden
+	switch errType {
+	case DATABASE_EXEC_FAIL_CODE:
+		c.JSON(http.StatusInternalServerError, gin.H{"code": DATABASE_EXEC_FAIL_CODE,
+			"message": fmt.Sprintf("DATABASE_EXEC_FAIL: %s", err.Error())})
+		break
+	case INPUT_VALIDATION_FAIL_CODE:
+		c.JSON(http.StatusBadRequest, gin.H{"code": INPUT_VALIDATION_FAIL_CODE,
+			"message": fmt.Sprintf("INPUT_VALIDATION_FAIL: %s", err.Error())})
+		break
+	case PAGE_NOT_FOUND_CODE:
+		c.JSON(http.StatusNotFound, PAGE_NOT_FOUND)
+		break
+	case RECORD_NOT_FOUND_CODE:
+		c.JSON(http.StatusNotFound, RECORD_NOT_FOUND)
+		break
+	}
 }

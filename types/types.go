@@ -40,6 +40,7 @@ type Runtime struct {
 	Dbconf         Dbconf
 	Modloc         string
 	Libloc         string
+	MiddlewareLoc  string
 	Migloc         string
 }
 
