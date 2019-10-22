@@ -17,7 +17,7 @@
 package main
 
 const APPNAME = "ipoint"
-const VERSION = "0.1.1"
+const VERSION = "0.2.1"
 const BUILDID = "51e620f3-3df5-431a-acb5-b2c92515b6f0"
 const CONFIG_LOCATION = "/etc/ipoint/config"
 const CONFIG_EXTENSION = "/etc/ipoint/config.d"

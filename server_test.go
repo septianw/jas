@@ -20,12 +20,15 @@ import (
 	// "net/http"
 	// "net/http/httptest"
 
+	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"testing"
 
 	pak "github.com/septianw/jas/common"
 	// ty "github.com/septianw/jas/types"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -85,6 +88,25 @@ func TestBootstrapLevel0(t *testing.T) {
 		t.Fail()
 	}
 
+	viper.SetConfigType("toml")
+	viper.SetConfigName("config")
+	viper.AddConfigPath(fmt.Sprintf("/etc/%s/", APPNAME))
+	viper.AddConfigPath(fmt.Sprintf("$HOME/.%s", APPNAME))
+	viper.AddConfigPath(".")
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			log.Fatalln("No config file found.")
+			// log.Printf("err: %+v\n", err)
+			t.Fail()
+			// Config file not found; ignore error if desired
+		} else {
+			log.Fatalln(err)
+			t.Fail()
+			// Config file was found but another error was produced
+		}
+	}
+
 	t.Logf(`
 	ListenAddr: %s,
 	Libloc: %s,
@@ -93,7 +115,7 @@ func TestBootstrapLevel0(t *testing.T) {
 
 	t.Logf("\npath: %s", filepath.Join(cwd, "now"))
 
-	assert.Equal(t, "192.168.122.1:4519", ListenAddr)
+	assert.Equal(t, fmt.Sprintf("%s:%d", viper.GetString("server.bind"), viper.GetInt("server.port")), ListenAddr)
 	assert.Equal(t, filepath.Join(cwd, "libs"), Libloc)
 	// assert.IsType(t, ty.Runtime, rt)
 	// assert.ObjectsAreEqual(ty.Runtime, rt)
