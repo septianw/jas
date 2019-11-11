@@ -3,4 +3,5 @@ libs/*.so
 modules/contrib/*
 modules/core/*
 bungkus
-
+*.tar.gz
+*.so

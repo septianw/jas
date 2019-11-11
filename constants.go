@@ -17,8 +17,8 @@
 package main
 
 const APPNAME = "ipoint"
-const VERSION = "0.2.1"
-const BUILDID = "51e620f3-3df5-431a-acb5-b2c92515b6f0"
+const VERSION = "0.2.2"
+const BUILDID = "ac821017-3920-41a5-a212-70e71b6656fa"
 const CONFIG_LOCATION = "/etc/ipoint/config"
 const CONFIG_EXTENSION = "/etc/ipoint/config.d"
 const LIBRARY_LOCATION = ""    // "/usr/local/lib/ipoint"

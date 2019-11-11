@@ -64,6 +64,7 @@ increasing error number based on which part of code that error.
 0 for skipping this error
 1 for unknown logical error
 2 for whole operation fail, operation end unexpectedly
+3 for whole operation fail, access forbidden
 */
 
 const DATABASE_EXEC_FAIL_CODE = 2200
@@ -72,6 +73,8 @@ const INPUT_VALIDATION_FAIL_CODE = 2110
 const RECORD_NOT_FOUND_CODE = 2230
 const PAGE_NOT_FOUND_CODE = 2100
 const NOT_ACCEPTABLE_CODE = 2112
+const FORBIDDEN_CODE = 2103
+const UNKNOWN_ERROR_CODE = 2101
 
 var NOT_ACCEPTABLE = gin.H{"code": NOT_ACCEPTABLE_CODE, "message": "You are trying to request something not acceptible here."}
 var PAGE_NOT_FOUND = gin.H{"code": PAGE_NOT_FOUND_CODE, "message": "You are find something we can't found it here."}
@@ -169,18 +172,26 @@ func SendHttpError(c *gin.Context, errType uint, err error) {
 	// FIXME: kurang yang forbidden
 	switch errType {
 	case DATABASE_EXEC_FAIL_CODE:
-		c.JSON(http.StatusInternalServerError, gin.H{"code": DATABASE_EXEC_FAIL_CODE,
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": DATABASE_EXEC_FAIL_CODE,
 			"message": fmt.Sprintf("DATABASE_EXEC_FAIL: %s", err.Error())})
 		break
 	case INPUT_VALIDATION_FAIL_CODE:
-		c.JSON(http.StatusBadRequest, gin.H{"code": INPUT_VALIDATION_FAIL_CODE,
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": INPUT_VALIDATION_FAIL_CODE,
 			"message": fmt.Sprintf("INPUT_VALIDATION_FAIL: %s", err.Error())})
 		break
 	case PAGE_NOT_FOUND_CODE:
-		c.JSON(http.StatusNotFound, PAGE_NOT_FOUND)
+		c.AbortWithStatusJSON(http.StatusNotFound, PAGE_NOT_FOUND)
 		break
 	case RECORD_NOT_FOUND_CODE:
-		c.JSON(http.StatusNotFound, RECORD_NOT_FOUND)
+		c.AbortWithStatusJSON(http.StatusNotFound, RECORD_NOT_FOUND)
 		break
+	case FORBIDDEN_CODE:
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"code": FORBIDDEN_CODE,
+			"message": fmt.Sprintf("FORBIDDEN: %s", err.Error())})
+		break
+	default:
+		c.AbortWithStatusJSON(http.StatusInternalServerError,
+			gin.H{"code": errType,
+				"message": fmt.Sprintf("UNKNOWN_ERROR: %s", err.Error())})
 	}
 }
