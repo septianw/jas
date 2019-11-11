@@ -5,3 +5,4 @@ modules/core/*
 bungkus
 *.tar.gz
 *.so
+dist

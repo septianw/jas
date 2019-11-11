@@ -1,0 +1,18 @@
+[server]
+bind = "192.168.122.1"
+port = 4519
+# if this empty, will use default location ./modules
+moduleLocation = ""
+# if this empty, will use default location ./lib
+libraryLocation = ""
+# if this empty, will use default location ./middlewares
+middlewareLocation = ""
+# if this empty, will use default location ./migrations
+migrationLocation = ""
+
+[database]
+hostname = "localhost"
+port = 3306
+username = ""
+password = ""
+database = ""
