@@ -9,6 +9,10 @@ libraryLocation = ""
 middlewareLocation = ""
 # if this empty, will use default location ./migrations
 migrationLocation = ""
+# Authentication server
+# Example: 
+# authServer = "10.8.0.1:4519"
+authServer = ""
 
 [database]
 hostname = "localhost"
