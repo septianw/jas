@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -29,10 +30,12 @@ import (
 	"io/ioutil"
 
 	// "reflect"
-	"strings"
 
 	"path/filepath"
+	"strconv"
 	"sync"
+
+	"github.com/google/uuid"
 
 	pak "github.com/septianw/jas/common"
 	ty "github.com/septianw/jas/types"
@@ -62,6 +65,7 @@ var Mutex sync.Mutex
 //   libraries
 func RunBootLevel0() {
 	// var files []string
+	var pidfile strings.Builder
 
 	// fmt.Println()
 	Spin.Start()
@@ -127,6 +131,20 @@ func RunBootLevel0() {
 	Mutex.Lock()
 	pak.WriteRuntime(rt)
 	Mutex.Unlock()
+
+	// NOTE: issue #16 this is work for issue [#16](https://github.com/septianw/jas/issues/16)
+	pidfile.WriteString("/var/run/")
+	pidfile.WriteString("jas-")
+	pidfile.WriteString(uuid.New().String())
+	pidfile.WriteString(".pid")
+
+	uid := strconv.Itoa(os.Getuid())
+
+	pfile, err := os.OpenFile(pidfile.String(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	pak.ErrHandler(err)
+	pfile.WriteString(uid)
+	err = pfile.Close()
+	pak.ErrHandler(err)
 
 	// time.Sleep(10 * time.Second)
 	Spin.Stop()
