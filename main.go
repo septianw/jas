@@ -90,6 +90,7 @@ func main() {
 	// catching ctx.Done(). timeout of 5 seconds.
 	select {
 	case <-ctx.Done():
+		// FIXME: affected by issue [#16](https://github.com/septianw/jas/issues/16)
 		os.Remove("/tmp/shinyRuntimeFile")
 		log.Println("timeout of 5 seconds.")
 	}

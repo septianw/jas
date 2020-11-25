@@ -39,7 +39,7 @@ func SetModuleMetadata(meta ty.ModuleMetadata) (err error) {
 		return
 	}
 
-	qs := `UPDATE TABLE modules SET version = '%s', status = '%s', sopath = '%s'`
+	qs := `UPDATE modules SET version = '%s', status = '%s', sopath = '%s'`
 	q := fmt.Sprintf(qs, meta.Version, meta.Status, meta.Sopath)
 
 	result, err := db.Exec(q)
