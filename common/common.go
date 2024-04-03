@@ -104,6 +104,7 @@ func LoadSo(path string) *plugin.Plugin {
 	return plug
 }
 
+// FIXME: affected by issue [#16](https://github.com/septianw/jas/issues/16)
 func ReadRuntime() ty.Runtime {
 	var out ty.Runtime
 
@@ -120,6 +121,7 @@ func ReadRuntime() ty.Runtime {
 	return out
 }
 
+// FIXME: affected by issue [#16](https://github.com/septianw/jas/issues/16)
 func WriteRuntime(rt ty.Runtime) {
 	RuntimeFile, err := os.OpenFile("/tmp/shinyRuntimeFile", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	ErrHandler(err)
